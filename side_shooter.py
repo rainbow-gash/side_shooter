@@ -25,10 +25,18 @@ class Game:
 		self.back_stars = pygame.sprite.Group()
 		self.create_starfield(self.back_stars, 1, 'rear_star.png')
 		self.bullets = pygame.sprite.Group()
-		self.enemies = pygame.sprite.Group()
 
-		self.test_enemy = Enemy(self)
-		self.enemies.add(self.test_enemy)
+		# Initialise enemies.		
+		self.enemies = pygame.sprite.Group()
+		self.enemy_x_offset = 0
+		self.enemy_y_offset = 0
+		for n in range(1, 11):
+			self.new_enemy = Enemy(self)
+			self.new_enemy.rect.x += self.enemy_x_offset
+			self.new_enemy.rect.y += self.enemy_y_offset
+			self.enemies.add(self.new_enemy)
+			self.enemy_x_offset += 400
+			self.enemy_y_offset += 50
 
 	def check_events(self):
 		'''Check for player input'''
@@ -94,8 +102,18 @@ class Game:
 				self.bullets.remove(bullet)
 			for enemy in self.enemies_hit:
 				enemy.hit_points -= 1
+				enemy.image = enemy.frames[1]
 				if enemy.hit_points == 0:
 					self.enemies.remove(enemy)
+
+	def move_starfields(self):
+		'''Move all of the stars in the background.'''
+		self.back_stars.update()
+		self.back_stars.draw(self.screen)
+		self.mid_stars.update()
+		self.mid_stars.draw(self.screen)		
+		self.fore_stars.update()
+		self.fore_stars.draw(self.screen)		
 
 	def run_game(self):
 		'''The main game loop'''
@@ -104,22 +122,20 @@ class Game:
 			self.clock.tick(60)
 			self.screen.fill('black')
 
-
-			# Move all of the stars in the background.
-			self.back_stars.update()
-			self.back_stars.draw(self.screen)
-			self.mid_stars.update()
-			self.mid_stars.draw(self.screen)		
-			self.fore_stars.update()
-			self.fore_stars.draw(self.screen)
+			self.move_starfields()
 
 			# Manage player and enemy actions.
 			self.check_events()
 			self.ship.move_ship()			
 			self.bullets.update()
 			self.bullets.draw(self.screen)
+			
 			self.enemies.update()
 			self.enemies.draw(self.screen)
+			for enemy in self.enemies:
+				if enemy.image == enemy.frames[1]:
+					enemy.image = enemy.frames[0]
+			
 			self.ship.blit_me()
 			self.fire_bullet()
 			self.remove_bullets()
@@ -145,20 +161,25 @@ class Enemy(pygame.sprite.Sprite):
 		super().__init__()
 		self.screen = game_instance.screen
 		self.screen_rect = self.screen.get_rect()
-		self.image = pygame.image.load('enemy.png')
+		self.frames = [
+			pygame.image.load('enemy.png'),
+			pygame.image.load('enemy_damaged.png')
+			]
+		self.image = self.frames[0]
 		self.rect = self.image.get_rect()
 		self.rect.topright = self.screen_rect.topright
-		self.movement_speed = 4
+		self.x_speed = 6
+		self.y_speed = 2 + random.randint(-1, 1)
 		self.movement_direction = 1 # 1 for downwards, -1 for upwards
-		self.hit_points = 5
+		self.hit_points = 3
 
 	def update(self):
-		self.rect.x -= self.movement_speed
-		self.rect.y += self.movement_speed * self.movement_direction
+		self.rect.x -= self.x_speed
+		self.rect.y += self.y_speed * self.movement_direction
 		if self.rect.bottom >= self.screen_rect.bottom:
 			self.movement_direction = -1
 		if self.rect.top <= self.screen_rect.top:
-			self.movement_direction = 1	
+			self.movement_direction = 1
 
 game = Game()
 game.run_game()
